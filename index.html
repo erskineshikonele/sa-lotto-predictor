@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SA Lotto Predictor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a26;--border:rgba(255,255,255,0.08);
+    --text:#f0f0f5;--muted:#888899;--gold:#f5c842;--gold2:#e8a800;
+    --purple:#8b5cf6;--teal:#14b8a6;--red:#ef4444;--green:#22c55e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;padding:24px 16px;}
+  h1{font-size:28px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;}
+  .subtitle{color:var(--muted);font-size:14px;margin-bottom:28px;}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+  @media(max-width:700px){.grid-4{grid-template-columns:repeat(2,1fr);}.grid-2{grid-template-columns:1fr;}}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;}
+  .metric-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;}
+  .metric-value{font-size:26px;font-weight:700;color:var(--gold);}
+  .metric-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .section-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;}
+  .ball{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;font-weight:700;font-size:14px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1000;margin:3px;flex-shrink:0;}
+  .ball.bonus{background:linear-gradient(135deg,var(--purple),#6d28d9);color:#fff;}
+  .ball.hot{background:linear-gradient(135deg,var(--red),#b91c1c);color:#fff;}
+  .ball.cold{background:linear-gradient(135deg,#1e3a5f,var(--teal));color:#fff;}
+  .ball.overdue{background:linear-gradient(135deg,#1a3f2a,var(--green));color:#fff;}
+  .balls-row{display:flex;flex-wrap:wrap;align-items:center;gap:2px;}
+  .tab-bar{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap;}
+  .tab{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:13px;transition:all .15s;}
+  .tab.active,.tab:hover{background:var(--bg3);color:var(--text);border-color:var(--purple);}
+  .tab.active{color:var(--gold);}
+  .panel{display:none;}.panel.active{display:block;}
+  .gen-btn{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#1a1000;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer;width:100%;margin-bottom:16px;transition:opacity .15s,transform .1s;}
+  .gen-btn:hover{opacity:.9;transform:translateY(-1px);}
+  .gen-btn:active{transform:scale(.98);}
+  .strategy-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  @media(max-width:500px){.strategy-grid{grid-template-columns:1fr;}}
+  .strategy-opt{background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;font-size:13px;color:var(--muted);transition:all .15s;text-align:left;}
+  .strategy-opt.selected{border-color:var(--gold);color:var(--gold);background:rgba(245,200,66,.08);}
+  .strategy-opt strong{display:block;font-size:14px;font-weight:600;margin-bottom:2px;}
+  .pick-set{background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid var(--border);}
+  .pick-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .pick-label{font-size:12px;color:var(--muted);}
+  .score-badge{background:rgba(139,92,246,.2);color:var(--purple);font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid rgba(139,92,246,.3);}
+  .strat-badge{font-size:10px;padding:2px 7px;border-radius:20px;margin-left:6px;}
+  .freq-bar-wrap{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+  .freq-num{width:24px;text-align:right;font-size:13px;font-weight:600;color:var(--text);}
+  .freq-bar{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--purple),var(--gold));}
+  .freq-count{font-size:11px;color:var(--muted);}
+  .pairs-list{list-style:none;}
+  .pairs-list li{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .pairs-list li:last-child{border-bottom:none;}
+  .recent-draw{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;}
+  .draw-date{color:var(--muted);min-width:90px;}
+  .jackpot-val{margin-left:auto;color:var(--gold);font-weight:600;}
+  input[type=range]{width:100%;accent-color:var(--gold);}
+  select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-size:13px;}
+  .disclaimer{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:12px 16px;font-size:12px;color:#fca5a5;margin-top:24px;}
+  .insight-box{background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--text);margin-bottom:16px;line-height:1.6;}
+  .insight-box b{color:var(--gold);}
+  .tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;margin:2px;}
+  .tag-hot{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);}
+  .tag-due{background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.3);}
+  .tag-freq{background:rgba(245,200,66,.12);color:#fde68a;border:1px solid rgba(245,200,66,.25);}
+</style>
+</head>
+<body>
+<h1>🎰 SA Lotto Predictor</h1>
+<p class="subtitle">Updated dataset: 1,131 draws (Jun 2015 – 30 May 2026) · Statistical analysis &amp; smart number generation</p>
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;width:fit-content;">
+  <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--gold));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#1a1000;flex-shrink:0;">EB</div>
+  <div>
+    <div style="font-size:13px;font-weight:600;color:var(--text);">Erskine Brister Shikonele</div>
+    <div style="font-size:11px;color:var(--muted);">Computer Systems Engineer</div>
+  </div>
+</div>
+
+<div class="grid-4">
+  <div class="card">
+    <div class="metric-label">Total Draws</div>
+    <div class="metric-value">1,131</div>
+    <div class="metric-sub">Jun 2015 – May 2026</div>
+  </div>
+  <div class="card">
+    <div class="metric-label">Most Frequent</div>
+    <div class="metric-value">#1</div>
+    <div class="metric-sub">157 appearances</div>
+  </div>
+  <div class="card">
+    <div class="metric-label">Hottest Now</div>
+    <div class="metric-value">#32</div>
+    <div class="metric-sub">Top last 50 draws</div>
+  </div>
+  <div class="card">
+    <div class="metric-label">Most Overdue</div>
+    <div class="metric-value">#38</div>
+    <div class="metric-sub">Last drawn 19+ draws ago</div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab active" onclick="switchTab('predict',this)">🎯 Predict</button>
+  <button class="tab" onclick="switchTab('stats',this)">📊 Statistics</button>
+  <button class="tab" onclick="switchTab('freq',this)">🔢 Frequency</button>
+  <button class="tab" onclick="switchTab('recent',this)">🕐 Recent Draws</button>
+</div>
+
+<!-- PREDICT PANEL -->
+<div id="panel-predict" class="panel active">
+  <div class="insight-box">
+    📌 Based on the latest data (through <b>30 May 2026</b>): numbers <b>32, 22, 12, 40, 49</b> are hottest recently. Numbers <b>38, 17, 20, 16, 19</b> are most overdue. The jackpot reset to <b>~R22M</b> for the next draw (3 Jun 2026) after rolling over through the full R100M cycle.
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="section-title">Generation strategy</div>
+    <div class="strategy-grid">
+      <button class="strategy-opt selected" id="strat-hot" onclick="selectStrat('hot')">
+        <strong>🔥 Hot Numbers</strong>
+        Focus on balls frequently drawn in the last 50 draws
+      </button>
+      <button class="strategy-opt" id="strat-due" onclick="selectStrat('due')">
+        <strong>⏰ Overdue Numbers</strong>
+        Numbers absent for the most consecutive draws
+      </button>
+      <button class="strategy-opt" id="strat-pair" onclick="selectStrat('pair')">
+        <strong>🔗 Top Pairs</strong>
+        Use historically common ball combinations
+      </button>
+      <button class="strategy-opt" id="strat-balanced" onclick="selectStrat('balanced')">
+        <strong>⚖️ Balanced Mix</strong>
+        Blend hot, overdue, frequent and random picks
+      </button>
+      <button class="strategy-opt" id="strat-freq" onclick="selectStrat('freq')">
+        <strong>📈 All-time Frequent</strong>
+        Highest frequency across all 1,131 draws
+      </button>
+      <button class="strategy-opt" id="strat-random" onclick="selectStrat('random')">
+        <strong>🎲 Smart Random</strong>
+        Weighted random — statistically fair distribution
+      </button>
+    </div>
+    <div style="margin-bottom:12px">
+      <div class="metric-label" style="margin-bottom:6px">Number of picks: <span id="picks-count">5</span></div>
+      <input type="range" min="1" max="10" value="5" id="picks-range" oninput="document.getElementById('picks-count').textContent=this.value">
+    </div>
+    <button class="gen-btn" onclick="generatePicks()">✨ Generate Lucky Picks</button>
+  </div>
+  <div id="picks-output"></div>
+</div>
+
+<!-- STATS PANEL -->
+<div id="panel-stats" class="panel">
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-title">🔥 Hot numbers (last 50 draws)</div>
+      <div class="balls-row" id="hot-balls"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">⏰ Overdue numbers</div>
+      <div class="balls-row" id="overdue-balls"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="section-title">Top ball pairs (all-time)</div>
+    <ul class="pairs-list" id="pairs-list"></ul>
+  </div>
+  <div class="card">
+    <div class="section-title">Number distribution — all 1,131 draws</div>
+    <div style="position:relative;height:220px;">
+      <canvas id="distChart" role="img" aria-label="Bar chart showing frequency of each SA Lotto ball number drawn across all draws">Frequency distribution of ball numbers 1 through 52.</canvas>
+    </div>
+  </div>
+</div>
+
+<!-- FREQUENCY PANEL -->
+<div id="panel-freq" class="panel">
+  <div class="card" style="margin-bottom:16px">
+    <div class="section-title">Ball frequency ranking</div>
+    <div style="display:flex;gap:12px;margin-bottom:14px;align-items:center">
+      <label style="font-size:13px;color:var(--muted)">Show:</label>
+      <select id="freq-limit" onchange="renderFreq()">
+        <option value="20">Top 20</option>
+        <option value="30">Top 30</option>
+        <option value="52" selected>All 52</option>
+      </select>
+      <select id="freq-sort" onchange="renderFreq()">
+        <option value="freq">By frequency</option>
+        <option value="num">By number</option>
+      </select>
+    </div>
+    <div id="freq-bars"></div>
+  </div>
+  <div class="card">
+    <div class="section-title">Bonus ball frequency (top 15)</div>
+    <div id="bonus-bars"></div>
+  </div>
+</div>
+
+<!-- RECENT DRAWS PANEL -->
+<div id="panel-recent" class="panel">
+  <div class="card">
+    <div class="section-title">Latest 30 draws</div>
+    <div id="recent-list"></div>
+  </div>
+</div>
+
+<div class="disclaimer">
+  ⚠️ Lottery draws are statistically independent random events. No model can reliably forecast results. This tool is for entertainment and statistical exploration only. Please play responsibly.
+</div>
+
+<script>
+// === UPDATED DATA: 1,131 draws through 30 May 2026 ===
+const FULL_FREQ = {1:157,2:128,3:128,4:134,5:131,6:132,7:127,8:141,9:122,10:124,11:140,12:126,13:137,14:155,15:112,16:135,17:125,18:135,19:122,20:125,21:102,22:137,23:152,24:136,25:129,26:131,27:127,28:130,29:143,30:129,31:125,32:135,33:119,34:126,35:127,36:128,37:125,38:134,39:139,40:123,41:127,42:123,43:133,44:126,45:138,46:135,47:116,48:150,49:144,50:105,51:101,52:89};
+const HOT    = [32,22,12,40,49,1,24,45,4,6,48,18,7,13,15]; // last 50 draws
+const OVERDUE= [38,17,20,16,19,29,14,11,43,41,2,48,31,25,5]; // most draws since last appearance
+const TOP_PAIRS = [[17,22],[14,33],[44,48],[14,30],[6,28],[7,48],[41,45],[3,24],[24,48],[1,26],[16,39],[9,31],[12,47],[8,37],[13,42]];
+const BONUS_FREQ = {1:45,2:42,3:40,4:38,5:52,6:45,7:48,8:41,9:36,10:43,11:37,12:44,13:39,14:46,15:38,16:44,17:40,18:36,19:42,20:48,21:35,22:47,23:41,24:36,25:40,26:44,27:38,28:36,29:42,30:38,31:40,32:44,33:36,34:39,35:38,36:42,37:45,38:38,39:40,40:36,41:42,42:38,43:40,44:36,45:43,46:38,47:42,48:40,49:38,50:36,51:34,52:35};
+
+const RECENT_DRAWS = [
+  ["2026-02-14",[6,10,18,32,37,46],0,31000000],
+  ["2026-02-18",[6,13,22,36,50,56],28,34000000],
+  ["2026-02-21",[2,4,8,34,39,55],0,36000000],
+  ["2026-02-25",[7,11,12,32,38,55],20,39000000],
+  ["2026-02-28",[2,7,15,33,38,48],5,42000000],
+  ["2026-03-04",[1,10,11,17,37,57],25,45000000],
+  ["2026-03-07",[4,13,14,20,22,47],29,48000000],
+  ["2026-03-11",[2,5,49,54,56,58],46,50000000],
+  ["2026-03-14",[12,22,30,32,42,58],0,52000000],
+  ["2026-03-18",[4,24,26,45,46,49],5,55000000],
+  ["2026-03-21",[2,3,7,16,24,25],39,58000000],
+  ["2026-03-25",[1,12,19,28,31,52],38,61000000],
+  ["2026-03-28",[6,12,26,40,41,55],17,65000000],
+  ["2026-04-01",[14,18,27,29,52,56],10,68000000],
+  ["2026-04-04",[11,13,15,30,39,48],8,71000000],
+  ["2026-04-08",[2,23,40,43,48,53],0,74000000],
+  ["2026-04-11",[15,41,43,45,57,58],1,77000000],
+  ["2026-04-15",[1,2,10,22,27,54],0,80000000],
+  ["2026-04-18",[5,23,25,31,48,52],38,83000000],
+  ["2026-04-22",[10,12,23,26,27,37],5,86000000],
+  ["2026-04-25",[9,22,26,30,50,54],42,90000000],
+  ["2026-04-30",[3,9,15,32,36,49],40,93000000],
+  ["2026-05-02",[7,28,32,40,44,49],37,96000000],
+  ["2026-05-06",[6,8,23,40,42,44],10,100644721],
+  ["2026-05-09",[18,21,24,45,52,56],0,3000000],
+  ["2026-05-13",[1,22,37,40,51,58],43,5000000],
+  ["2026-05-16",[34,40,42,45,56,58],52,6500000],
+  ["2026-05-20",[1,4,12,13,24,58],0,8500000],
+  ["2026-05-23",[33,39,45,47,49,53],34,10500000],
+  ["2026-05-30",[21,35,39,46,51,56],24,15500000]
+];
+
+let currentStrat = 'hot';
+let distChartInst = null;
+
+function switchTab(t, btn) {
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-'+t).classList.add('active');
+  if(t==='stats') initStats();
+  if(t==='freq') renderFreq();
+  if(t==='recent') renderRecent();
+}
+
+function selectStrat(s) {
+  currentStrat = s;
+  document.querySelectorAll('.strategy-opt').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('strat-'+s).classList.add('selected');
+}
+
+function weightedSample(pool, weights, n) {
+  const available = [...pool], w = [...weights], result = [];
+  for(let i=0;i<n&&available.length>0;i++){
+    const total = w.reduce((a,b)=>a+b,0);
+    let r = Math.random()*total, idx=0;
+    while(r>w[idx]){r-=w[idx];idx++;}
+    result.push(available[idx]);
+    available.splice(idx,1); w.splice(idx,1);
+  }
+  return result.sort((a,b)=>a-b);
+}
+
+const NUMS = Array.from({length:52},(_,i)=>i+1);
+
+function generatePicks() {
+  const n = parseInt(document.getElementById('picks-range').value);
+  const picks = [];
+
+  for(let i=0;i<n;i++){
+    let balls, tags=[];
+
+    if(currentStrat==='hot'){
+      const weights = NUMS.map(n=>{
+        const rank = HOT.indexOf(n);
+        return rank>=0 ? (HOT.length-rank)*20 + (FULL_FREQ[n]||100) : (FULL_FREQ[n]||100)*0.3;
+      });
+      balls = weightedSample(NUMS,weights,6);
+      tags = ['🔥 Hot weighted'];
+
+    } else if(currentStrat==='due'){
+      const weights = NUMS.map(n=>{
+        const rank = OVERDUE.indexOf(n);
+        return rank>=0 ? (OVERDUE.length-rank)*20+50 : 8;
+      });
+      balls = weightedSample(NUMS,weights,6);
+      tags = ['⏰ Overdue weighted'];
+
+    } else if(currentStrat==='pair'){
+      const pairPool = [...new Set(TOP_PAIRS.slice(0,8).flat())];
+      const seed = pairPool.slice(0, 2 + Math.floor(Math.random()*2));
+      const remaining = NUMS.filter(n=>!seed.includes(n));
+      const extra = weightedSample(remaining, remaining.map(n=>FULL_FREQ[n]||100), 6-seed.length);
+      balls = [...seed,...extra].sort((a,b)=>a-b);
+      tags = ['🔗 Pair seeded'];
+
+    } else if(currentStrat==='balanced'){
+      const h = HOT.slice(0,3+Math.floor(Math.random()*2));
+      const d = OVERDUE.slice(0,1+Math.floor(Math.random()*2));
+      const used = new Set([...h,...d]);
+      const rest = NUMS.filter(n=>!used.has(n));
+      const extra = weightedSample(rest, rest.map(n=>FULL_FREQ[n]||100), Math.max(0,6-h.length-d.length));
+      const pool = [...h.slice(0,3),...d.slice(0,1),...extra];
+      balls = weightedSample(pool, pool.map(()=>1), Math.min(6,pool.length));
+      if(balls.length < 6){
+        const fill = weightedSample(NUMS.filter(n=>!balls.includes(n)), NUMS.filter(n=>!balls.includes(n)).map(n=>FULL_FREQ[n]||100), 6-balls.length);
+        balls = [...balls,...fill];
+      }
+      balls = balls.slice(0,6).sort((a,b)=>a-b);
+      tags = ['⚖️ Balanced'];
+
+    } else if(currentStrat==='freq'){
+      const weights = NUMS.map(n=>Math.pow(FULL_FREQ[n]||100, 1.8));
+      balls = weightedSample(NUMS,weights,6);
+      tags = ['📈 Freq weighted'];
+
+    } else { // smart random
+      const avg = Object.values(FULL_FREQ).reduce((a,b)=>a+b,0)/52;
+      const weights = NUMS.map(n=>{
+        const f = FULL_FREQ[n]||100;
+        return Math.max(1, avg + (f-avg)*0.5);
+      });
+      balls = weightedSample(NUMS,weights,6);
+      tags = ['🎲 Smart random'];
+    }
+
+    // Pick bonus ball weighted by bonus frequency
+    const bonusPool = NUMS.filter(n=>!balls.includes(n));
+    const bonusWeights = bonusPool.map(n=>BONUS_FREQ[n]||30);
+    const [bonus] = weightedSample(bonusPool, bonusWeights, 1);
+
+    const score = calcScore(balls);
+    picks.push({balls, bonus, score, tags});
+  }
+
+  const html = picks.map((p,i)=>{
+    const tagHtml = p.tags.map(t=>`<span class="tag tag-freq">${t}</span>`).join('');
+    const ballLabels = p.balls.map(b=>{
+      let cls='ball';
+      if(HOT.slice(0,10).includes(b)) cls='ball hot';
+      else if(OVERDUE.slice(0,10).includes(b)) cls='ball overdue';
+      return `<span class="${cls}" title="${cls.includes('hot')?'🔥 Hot':''}${cls.includes('overdue')?'⏰ Overdue':''}">${b}</span>`;
+    }).join('');
+    return `
+    <div class="pick-set">
+      <div class="pick-header">
+        <span class="pick-label">Pick #${i+1} ${tagHtml}</span>
+        <span class="score-badge">Score: ${p.score}/100</span>
+      </div>
+      <div class="balls-row">
+        ${ballLabels}
+        <span style="color:var(--muted);font-size:12px;margin:0 4px">+</span>
+        <span class="ball bonus">${p.bonus}</span>
+        <span style="color:var(--muted);font-size:11px;margin-left:6px">bonus</span>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted)">
+        Sum: ${p.balls.reduce((a,b)=>a+b,0)} &nbsp;·&nbsp;
+        Avg: ${(p.balls.reduce((a,b)=>a+b,0)/6).toFixed(1)} &nbsp;·&nbsp;
+        <span style="color:#fca5a5">🔴 hot</span> = in top 10 recent &nbsp;·&nbsp; <span style="color:#86efac">🟢 overdue</span> = long absent
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('picks-output').innerHTML = html;
+}
+
+function calcScore(balls) {
+  const maxF=157, minF=89, avg=129;
+  let s=50;
+  balls.forEach(b=>{
+    const f=FULL_FREQ[b]||100;
+    s += ((f-minF)/(maxF-minF))*8;
+    if(HOT.includes(b)) s+=5;
+    if(OVERDUE.includes(b)) s+=3;
+  });
+  const sum=balls.reduce((a,b)=>a+b,0);
+  if(sum>=90&&sum<=200) s+=5;
+  // check no 3 consecutive
+  const sorted=[...balls].sort((a,b)=>a-b);
+  let consec=1,maxConsec=1;
+  for(let i=1;i<sorted.length;i++){if(sorted[i]-sorted[i-1]===1)consec++;else consec=1;maxConsec=Math.max(maxConsec,consec);}
+  if(maxConsec<3) s+=3;
+  return Math.min(99, Math.max(10, Math.round(s)));
+}
+
+function initStats() {
+  document.getElementById('hot-balls').innerHTML = HOT.slice(0,12).map(n=>`<span class="ball hot">${n}</span>`).join('');
+  document.getElementById('overdue-balls').innerHTML = OVERDUE.slice(0,12).map(n=>`<span class="ball overdue">${n}</span>`).join('');
+
+  const counts=[25,25,24,24,23,23,22,22,22,22];
+  document.getElementById('pairs-list').innerHTML = TOP_PAIRS.slice(0,10).map((p,i)=>`
+    <li>
+      <span>${p.map(n=>`<span class="ball" style="width:26px;height:26px;font-size:11px">${n}</span>`).join('')}</span>
+      <span style="color:var(--muted)">drawn together ${counts[i]} times</span>
+    </li>`).join('');
+
+  if(distChartInst) distChartInst.destroy();
+  const ctx=document.getElementById('distChart').getContext('2d');
+  const labels=Object.keys(FULL_FREQ).map(Number).sort((a,b)=>a-b);
+  const vals=labels.map(l=>FULL_FREQ[l]);
+  const avgF=vals.reduce((a,b)=>a+b,0)/vals.length;
+  distChartInst=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[{label:'Frequency',data:vals,backgroundColor:vals.map(v=>HOT.slice(0,10).includes(labels[vals.indexOf(v)])?'#ef4444':v>avgF+10?'#f5c842':'#8b5cf6'),borderRadius:3,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`Drawn ${c.raw} times`}}},scales:{x:{ticks:{color:'#888899',font:{size:9},maxRotation:0},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#888899',font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'}}}}
+  });
+}
+
+function renderFreq() {
+  const limit=parseInt(document.getElementById('freq-limit').value);
+  const sortBy=document.getElementById('freq-sort').value;
+  let entries=Object.entries(FULL_FREQ).map(([k,v])=>({n:parseInt(k),c:v}));
+  if(sortBy==='freq') entries.sort((a,b)=>b.c-a.c);
+  else entries.sort((a,b)=>a.n-b.n);
+  const top=entries.slice(0,limit);
+  const maxC=Math.max(...top.map(e=>e.c));
+
+  document.getElementById('freq-bars').innerHTML=top.map(({n,c})=>{
+    const isHot=HOT.slice(0,10).includes(n);
+    const isDue=OVERDUE.slice(0,10).includes(n);
+    const barColor=isHot?'linear-gradient(90deg,#ef4444,#f97316)':isDue?'linear-gradient(90deg,#22c55e,#14b8a6)':'linear-gradient(90deg,var(--purple),var(--gold))';
+    return `<div class="freq-bar-wrap">
+      <span class="freq-num">${n}</span>
+      <div style="flex:1"><div class="freq-bar" style="width:${Math.round(c/maxC*100)}%;background:${barColor}"></div></div>
+      <span class="freq-count">${c}×${isHot?' 🔥':isDue?' ⏰':''}</span>
+    </div>`;
+  }).join('');
+
+  const bSorted=Object.entries(BONUS_FREQ).map(([k,v])=>({n:parseInt(k),c:v})).sort((a,b)=>b.c-a.c);
+  const maxB=bSorted[0].c;
+  document.getElementById('bonus-bars').innerHTML=bSorted.slice(0,15).map(({n,c})=>`
+    <div class="freq-bar-wrap">
+      <span class="freq-num">${n}</span>
+      <div style="flex:1"><div class="freq-bar" style="width:${Math.round(c/maxB*100)}%;background:linear-gradient(90deg,var(--purple),var(--teal))"></div></div>
+      <span class="freq-count">${c}×</span>
+    </div>`).join('');
+}
+
+function renderRecent() {
+  document.getElementById('recent-list').innerHTML=[...RECENT_DRAWS].reverse().map(([date,balls,bonus,jackpot])=>{
+    const d=new Date(date);
+    const fmt=d.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'});
+    const jp=jackpot>=1000000?'R'+(jackpot/1000000).toFixed(1)+'M':'R'+jackpot.toLocaleString();
+    const ballHtml=balls.map(b=>{
+      const cls=HOT.slice(0,10).includes(b)?'ball hot':OVERDUE.slice(0,10).includes(b)?'ball overdue':'ball';
+      return `<span class="${cls}" style="width:26px;height:26px;font-size:11px">${b}</span>`;
+    }).join('');
+    const bonusHtml=bonus>0&&bonus<=52?`<span style="color:var(--muted);font-size:11px;margin:0 2px">+</span><span class="ball bonus" style="width:26px;height:26px;font-size:11px">${bonus}</span>`:'';
+    return `<div class="recent-draw">
+      <span class="draw-date">${fmt}</span>
+      <div class="balls-row">${ballHtml}${bonusHtml}</div>
+      <span class="jackpot-val">${jp}</span>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
