@@ -1,0 +1,73 @@
+# ─────────────────────────────────────────────────────────────────
+# SA Lotto Predictor — Auto-Update Workflow
+# Author: Erskine Brister Shikonele · Computer Systems Engineer
+#
+# Runs automatically every Wednesday and Saturday at 21:30 SAST
+# (19:30 UTC). Scrapes the latest draw, updates the CSV and
+# dashboard, then commits and pushes back to the repo so GitHub
+# Pages reflects the new data within minutes.
+#
+# Can also be triggered manually from the Actions tab on GitHub.
+# ─────────────────────────────────────────────────────────────────
+
+name: Auto-Update Lotto Dataset
+
+on:
+  schedule:
+    # Wednesday 21:30 SAST = 19:30 UTC
+    - cron: '30 19 * * 3'
+    # Saturday 21:30 SAST = 19:30 UTC
+    - cron: '30 19 * * 6'
+
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    # Only run on the main branch
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+
+      # 1. Check out the full repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2. Set up Python
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pandas numpy requests beautifulsoup4
+
+      # 4. Run the auto-update pipeline
+      - name: Run auto-update pipeline
+        run: python lotto_pipeline.py --auto-update
+
+      # 5. Commit and push if anything changed
+      - name: Commit and push updates
+        run: |
+          git config user.name  "Erskine Brister Shikonele"
+          git config user.email "actions@github.com"
+
+          # Stage updated files
+          git add lotteries_enhanced.csv index.html
+
+          # Only commit if there are actual changes
+          if git diff --cached --quiet; then
+            echo "No new draw found — nothing to commit."
+          else
+            DRAW_DATE=$(date -u +"%Y-%m-%d")
+            git commit -m "Auto-update: new draw added ${DRAW_DATE} [skip ci]"
+            git push origin main
+            echo "Changes pushed successfully."
+          fi
