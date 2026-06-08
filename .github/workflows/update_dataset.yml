@@ -60,7 +60,7 @@ jobs:
           git config user.email "actions@github.com"
 
           # Stage updated files
-          git add lotteries_enhanced.csv index.html
+          git add -A
 
           # Only commit if there are actual changes
           if git diff --cached --quiet; then
