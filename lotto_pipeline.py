@@ -255,6 +255,30 @@ def _try_national_lottery_com(session):
     return None
 
 
+def fetch_from_worker_json(session) -> dict:
+    """
+    Call the Cloudflare Worker which parses the lottery page and returns clean JSON.
+    Returns dict with drawDate, balls, bonus or None on failure.
+    """
+    try:
+        r = session.get(WORKER_URL + "/", timeout=20)
+        if r.status_code == 200:
+            data = r.json()
+            log.info(f"  Worker response: {data}")
+            if data.get("status") == "ok":
+                return data
+            elif data.get("status") == "parse_failed":
+                log.warning(f"  Worker parse failed. HTML length: {data.get('htmlLength')}")
+                log.warning(f"  Date found: {data.get('dateMatch')}")
+                log.warning(f"  Balls found: {data.get('ballsFound')}")
+                log.warning(f"  HTML sample: {data.get('htmlSample','')[:500]}")
+        else:
+            log.warning(f"  Worker returned status {r.status_code}")
+    except Exception as e:
+        log.warning(f"  Worker JSON fetch failed: {e}")
+    return None
+
+
 def _fetch_via_worker(url: str, session) -> str:
     """
     Fetch a URL through the Cloudflare Worker proxy to bypass IP blocks.
@@ -283,15 +307,22 @@ def _fetch_via_worker(url: str, session) -> str:
 
 def fetch_latest_draw():
     """
-    Try each source in order via Cloudflare Worker proxy.
+    Try Cloudflare Worker JSON endpoint first, then fall back to HTML scraping.
     Returns the first successful result as:
         { "drawDate": "2026-06-04", "balls": [...], "bonus": 17, "source": "..." }
     Returns None if all sources fail.
     """
     session = requests.Session()
     session.headers.update(HEADERS)
-    log.info("Fetching latest draw results via Cloudflare Worker proxy...")
+    log.info("Fetching latest draw results via Cloudflare Worker...")
 
+    # Try Worker JSON first (most reliable)
+    result = fetch_from_worker_json(session)
+    if result:
+        log.info(f"  Worker JSON success: {result['drawDate']} -- {result['balls']} + bonus {result['bonus']}")
+        return result
+
+    log.info("  Worker JSON failed, trying HTML scrapers...")
     for fn in [_try_lottonumbers, _try_national_lottery_com, _try_nationallottery]:
         result = fn(session)
         if result:
