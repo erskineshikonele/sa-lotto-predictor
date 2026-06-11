@@ -71,10 +71,11 @@ CSV_PATH       = Path("lotteries_enhanced.csv")
 DASHBOARD_PATH = Path("index.html")
 BALL_COLS      = ["ball1", "ball2", "ball3", "ball4", "ball5", "ball6"]
 MAX_BALL       = 52
+WORKER_URL     = "https://lotto-results.bristererskine.workers.dev"
 SCRAPE_SOURCES = [
-    "https://www.nationallottery.co.za/lotto/results",
-    "https://za.national-lottery.com/lotto/results",
     "https://za.lottonumbers.com/lotto/results",
+    "https://za.national-lottery.com/lotto/results",
+    "https://www.nationallottery.co.za/lotto/results",
 ]
 HEADERS = {
     "User-Agent": (
@@ -146,11 +147,12 @@ def parse_result_string(s: str, n: int = 7, max_val: int = 58):
 # ─────────────────────────────────────────────
 
 def _try_nationallottery(session):
-    """Scrape from nationallottery.co.za"""
+    """Scrape from nationallottery.co.za via worker"""
     try:
-        r = session.get(SCRAPE_SOURCES[0], timeout=15)
-        r.raise_for_status()
-        soup = BeautifulSoup(r.text, "html.parser")
+        html = _fetch_via_worker(SCRAPE_SOURCES[2], session)
+        if not html:
+            return None
+        soup = BeautifulSoup(html, "html.parser")
 
         date_el = (
             soup.find("span", class_=re.compile(r"draw.?date", re.I)) or
@@ -182,11 +184,12 @@ def _try_nationallottery(session):
 
 
 def _try_lottonumbers(session):
-    """Scrape from za.lottonumbers.com"""
+    """Scrape from za.lottonumbers.com via worker"""
     try:
-        r = session.get(SCRAPE_SOURCES[2], timeout=15)
-        r.raise_for_status()
-        soup = BeautifulSoup(r.text, "html.parser")
+        html = _fetch_via_worker(SCRAPE_SOURCES[0], session)
+        if not html:
+            return None
+        soup = BeautifulSoup(html, "html.parser")
 
         for row in soup.find_all("tr")[:5]:
             cells = row.find_all("td")
@@ -215,11 +218,12 @@ def _try_lottonumbers(session):
 
 
 def _try_national_lottery_com(session):
-    """Scrape from za.national-lottery.com"""
+    """Scrape from za.national-lottery.com via worker"""
     try:
-        r = session.get(SCRAPE_SOURCES[1], timeout=15)
-        r.raise_for_status()
-        soup = BeautifulSoup(r.text, "html.parser")
+        html = _fetch_via_worker(SCRAPE_SOURCES[1], session)
+        if not html:
+            return None
+        soup = BeautifulSoup(html, "html.parser")
 
         spans = soup.find_all("span", class_=re.compile(r"number|ball|result", re.I))
         balls = []
@@ -251,17 +255,44 @@ def _try_national_lottery_com(session):
     return None
 
 
+def _fetch_via_worker(url: str, session) -> str:
+    """
+    Fetch a URL through the Cloudflare Worker proxy to bypass IP blocks.
+    Falls back to direct request if worker is unavailable.
+    """
+    try:
+        worker_url = f"{WORKER_URL}/?url={requests.utils.quote(url, safe='')}"
+        r = session.get(worker_url, timeout=20)
+        if r.status_code == 200 and len(r.text) > 500:
+            log.info(f"  Fetched via Cloudflare Worker: {url}")
+            return r.text
+    except Exception as e:
+        log.debug(f"Worker fetch failed: {e}")
+
+    # Fallback: direct request
+    try:
+        r = session.get(url, timeout=15)
+        if r.status_code == 200:
+            log.info(f"  Fetched directly: {url}")
+            return r.text
+    except Exception as e:
+        log.debug(f"Direct fetch failed: {e}")
+
+    return ""
+
+
 def fetch_latest_draw():
     """
-    Try each source in order. Return the first successful result as:
+    Try each source in order via Cloudflare Worker proxy.
+    Returns the first successful result as:
         { "drawDate": "2026-06-04", "balls": [...], "bonus": 17, "source": "..." }
     Returns None if all sources fail.
     """
     session = requests.Session()
     session.headers.update(HEADERS)
-    log.info("Fetching latest draw results...")
+    log.info("Fetching latest draw results via Cloudflare Worker proxy...")
 
-    for fn in [_try_nationallottery, _try_national_lottery_com, _try_lottonumbers]:
+    for fn in [_try_lottonumbers, _try_national_lottery_com, _try_nationallottery]:
         result = fn(session)
         if result:
             log.info(f"  Fetched from {result['source']}: "
