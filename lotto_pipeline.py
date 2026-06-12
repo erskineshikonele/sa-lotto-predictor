@@ -382,7 +382,15 @@ def build_record(draw: dict, draw_number: int) -> dict:
 def append_draw(df: pd.DataFrame, draw: dict) -> pd.DataFrame:
     """Append a new draw after duplicate check. Returns updated DataFrame."""
     if is_already_stored(df, draw["drawDate"]):
-        log.info(f"  Draw {draw['drawDate']} already in dataset -- skipping.")
+        # Update jackpot if it was 0 and we now have a value
+        mask = df["drawDate"] == pd.to_datetime(draw["drawDate"])
+        if mask.any() and draw.get("jackpot", 0) > 0:
+            current_jackpot = df.loc[mask, "estimatedJackpot"].values[0]
+            if pd.isna(current_jackpot) or int(current_jackpot) == 0:
+                df.loc[mask, "estimatedJackpot"] = draw["jackpot"]
+                log.info(f"  Updated jackpot for {draw['drawDate']}: R{draw['jackpot']:,}")
+        else:
+            log.info(f"  Draw {draw['drawDate']} already in dataset -- skipping.")
         return df
 
     next_num = int(df["drawNumber"].max()) + 1
@@ -493,17 +501,28 @@ def update_dashboard(stats: dict, html_path: Path) -> None:
         f"const RECENT_DRAWS = {json.dumps(stats['recentDraws'], indent=2)};"
     )
 
+    # Remove ALL existing data blocks (handles duplicates)
+    # First remove any duplicate const blocks that don't have the sentinel
+    dup_pattern = re.compile(
+        r"\nconst FULL_FREQ = \{1:.*?\];\s*(?=\n(?:const|let|function|//))",
+        re.DOTALL,
+    )
+    html = dup_pattern.sub("\n", html)
+
+    # Now replace the sentinel block
     pattern = re.compile(
-        r"// === UPDATED DATA:.*?(?=\nconst [A-Z_].*?=|\nlet |\nfunction )",
+        r"// === UPDATED DATA:.*?const RECENT_DRAWS = \[.*?\];",
         re.DOTALL,
     )
 
     if pattern.search(html):
-        html = pattern.sub(new_block + "\n", html, count=1)
+        html = pattern.sub(new_block, html, count=1)
         log.info("  Dashboard data constants updated.")
     else:
-        log.warning("  Could not locate data sentinel in HTML -- check manually.")
-        return
+        # Sentinel not found - inject before first let/function in script
+        inject_pattern = re.compile(r"(\n)(let |function )")
+        html = inject_pattern.sub(f"\n{new_block}\n\n\g<2>", html, count=1)
+        log.info("  Dashboard data constants injected.")
 
     # update subtitle line
     html = re.sub(
@@ -561,6 +580,16 @@ def run_update(csv_path=CSV_PATH, html_path=DASHBOARD_PATH) -> bool:
     df = append_draw(df, draw)
 
     if len(df) == original_len:
+        # Check if jackpot was updated
+        mask = df["drawDate"] == pd.to_datetime(draw["drawDate"])
+        if mask.any() and draw.get("jackpot", 0) > 0:
+            current = df.loc[mask, "estimatedJackpot"].values[0]
+            if pd.notna(current) and int(current) > 0:
+                log.info("Jackpot updated — rebuilding dashboard...")
+                stats = build_stats(df)
+                update_dashboard(stats, html_path)
+                save_dataset(df, csv_path)
+                return True
         log.info("Dataset is already up to date.")
         return False
 
