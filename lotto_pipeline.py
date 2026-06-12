@@ -512,30 +512,12 @@ def update_dashboard(stats: dict, html_path: Path) -> None:
         f"({stats['dateFrom']} \u2013 {stats['dateTo']})",
         html,
     )
-    # update total-draws metric card value (first occurrence only)
+    # update total-draws metric card value
     html = re.sub(
         r"(<div class=\"metric-value\">)\d[\d,]*(</div>)",
         rf"\g<1>{stats['totalDraws']:,}\g<2>",
         html,
         count=1,
-    )
-    # update all hardcoded draw count references in text
-    html = re.sub(
-        r"all [\d,]+ draws",
-        f"all {stats['totalDraws']:,} draws",
-        html,
-    )
-    # update date range in section titles
-    html = re.sub(
-        r"(Number distribution[^<]*?)\d{4}",
-        f"Number distribution \u2014 all {stats['totalDraws']:,} draws",
-        html,
-    )
-    # update "Highest frequency across all X draws"
-    html = re.sub(
-        r"Highest frequency across all [\d,]+ draws",
-        f"Highest frequency across all {stats['totalDraws']:,} draws",
-        html,
     )
 
     html_path.write_text(html, encoding="utf-8")
