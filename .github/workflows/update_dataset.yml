@@ -56,6 +56,7 @@ jobs:
 
       # 5. Commit and push if anything changed
       - name: Commit and push updates
+        shell: bash
         run: |
           git config user.name  "Erskine Brister Shikonele"
           git config user.email "actions@github.com"
@@ -65,7 +66,7 @@ jobs:
 
           # Only commit if there are actual changes
           if git diff --cached --quiet; then
-            echo "No new draw found — nothing to commit."
+            echo "No new draw found - nothing to commit."
           else
             DRAW_DATE=$(date -u +"%Y-%m-%d")
             git commit -m "Auto-update: new draw added ${DRAW_DATE} [skip ci]"
@@ -75,14 +76,21 @@ jobs:
             git pull --rebase origin main
 
             # Retry push up to 3 times in case of further races
+            PUSHED=0
             for i in 1 2 3; do
               if git push origin main; then
                 echo "Changes pushed successfully."
+                PUSHED=1
                 break
               else
-                echo "Push attempt $i failed — pulling and retrying..."
+                echo "Push attempt $i failed, pulling and retrying..."
                 git pull --rebase origin main
                 sleep 3
               fi
             done
+
+            if [ "$PUSHED" -eq 0 ]; then
+              echo "All push attempts failed."
+              exit 1
+            fi
           fi
