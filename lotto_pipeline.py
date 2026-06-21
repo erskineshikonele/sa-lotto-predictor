@@ -85,6 +85,14 @@ HEADERS = {
     )
 }
 
+# Supabase — pushes the official result so the check-results Edge
+# Function can compare it against saved picks. Set these as GitHub
+# Actions secrets; never commit real keys to the repo.
+import os
+SUPABASE_URL         = os.environ.get("SUPABASE_URL", "")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+
+
 
 # ─────────────────────────────────────────────
 # 1. LOAD DATASET
@@ -516,12 +524,14 @@ def update_dashboard(stats: dict, html_path: Path) -> None:
     )
 
     if pattern.search(html):
-        html = pattern.sub(new_block, html, count=1)
+        html = pattern.sub(lambda m: new_block, html, count=1)
         log.info("  Dashboard data constants updated.")
     else:
         # Sentinel not found - inject before first let/function in script
         inject_pattern = re.compile(r"(\n)(let |function )")
-        html = inject_pattern.sub(f"\n{new_block}\n\n\g<2>", html, count=1)
+        html = inject_pattern.sub(
+            lambda m: f"\n{new_block}\n\n{m.group(2)}", html, count=1
+        )
         log.info("  Dashboard data constants injected.")
 
     # update subtitle line
@@ -552,6 +562,41 @@ def save_dataset(df: pd.DataFrame, path: Path) -> None:
     log.info(f"  Dataset saved -> {path}  ({len(df):,} draws)")
 
 
+def push_result_to_supabase(draw: dict) -> None:
+    """
+    Push the latest official result into the Supabase `results` table
+    so the check-results Edge Function has data to compare saved
+    picks against. Silently skips if Supabase credentials aren't set
+    (keeps the pipeline working even before this feature is configured).
+    """
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        log.info("  Supabase not configured -- skipping results push "
+                 "(saved-picks feature inactive).")
+        return
+
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/results"
+        headers = {
+            "apikey": SUPABASE_SERVICE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates",
+        }
+        payload = {
+            "draw_date": draw["drawDate"],
+            "balls": draw["balls"],
+            "bonus": draw.get("bonus", 0),
+            "jackpot": draw.get("jackpot", 0),
+        }
+        r = requests.post(url, json=payload, headers=headers, timeout=15)
+        if r.status_code in (200, 201, 204):
+            log.info(f"  Pushed result to Supabase: {draw['drawDate']}")
+        else:
+            log.warning(f"  Supabase push failed ({r.status_code}): {r.text[:200]}")
+    except Exception as e:
+        log.warning(f"  Supabase push error: {e}")
+
+
 # ─────────────────────────────────────────────
 # 9. FULL UPDATE CYCLE
 # ─────────────────────────────────────────────
@@ -560,7 +605,7 @@ def run_update(csv_path=CSV_PATH, html_path=DASHBOARD_PATH) -> bool:
     """
     Full update cycle:
       Load -> Scrape -> Duplicate check -> Append ->
-      Recompute stats -> Update dashboard -> Save CSV
+      Recompute stats -> Update dashboard -> Save CSV -> Push to Supabase
 
     Returns True if a new draw was added, False otherwise.
     """
@@ -589,6 +634,7 @@ def run_update(csv_path=CSV_PATH, html_path=DASHBOARD_PATH) -> bool:
                 stats = build_stats(df)
                 update_dashboard(stats, html_path)
                 save_dataset(df, csv_path)
+                push_result_to_supabase(draw)
                 return True
         log.info("Dataset is already up to date.")
         return False
@@ -601,6 +647,9 @@ def run_update(csv_path=CSV_PATH, html_path=DASHBOARD_PATH) -> bool:
 
     log.info("Saving dataset...")
     save_dataset(df, csv_path)
+
+    log.info("Pushing result to Supabase (for saved-picks checking)...")
+    push_result_to_supabase(draw)
 
     log.info(f"\nUpdate complete. Dataset now has {len(df):,} draws.")
     return True
