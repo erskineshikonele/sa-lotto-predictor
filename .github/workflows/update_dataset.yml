@@ -49,6 +49,9 @@ jobs:
 
       # 4. Run the auto-update pipeline
       - name: Run auto-update pipeline
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python lotto_pipeline.py --auto-update
 
       # 5. Commit and push if anything changed
