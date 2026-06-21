@@ -69,6 +69,20 @@ jobs:
           else
             DRAW_DATE=$(date -u +"%Y-%m-%d")
             git commit -m "Auto-update: new draw added ${DRAW_DATE} [skip ci]"
-            git push origin main
-            echo "Changes pushed successfully."
+
+            # Pull any changes that landed on main since checkout,
+            # rebasing our commit on top to avoid push conflicts
+            git pull --rebase origin main
+
+            # Retry push up to 3 times in case of further races
+            for i in 1 2 3; do
+              if git push origin main; then
+                echo "Changes pushed successfully."
+                break
+              else
+                echo "Push attempt $i failed — pulling and retrying..."
+                git pull --rebase origin main
+                sleep 3
+              fi
+            done
           fi
