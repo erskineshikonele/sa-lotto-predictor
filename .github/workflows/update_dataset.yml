@@ -94,3 +94,24 @@ jobs:
               exit 1
             fi
           fi
+
+      # 6. Trigger the check-results Edge Function to check saved picks
+      - name: Check saved picks against results
+        shell: bash
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "Calling check-results Edge Function..."
+          RESPONSE=$(curl -s -o /tmp/fn_response.txt -w "%{http_code}" \
+            -X POST \
+            "${SUPABASE_URL}/functions/v1/check-results" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json")
+          echo "HTTP status: ${RESPONSE}"
+          echo "Response: $(cat /tmp/fn_response.txt)"
+          if [ "$RESPONSE" -eq 200 ]; then
+            echo "Picks checked successfully."
+          else
+            echo "Edge Function returned non-200 status - check Supabase logs."
+          fi
