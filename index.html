@@ -11,6 +11,7 @@
     --bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a26;--border:rgba(255,255,255,0.08);
     --text:#f0f0f5;--muted:#888899;--gold:#f5c842;--gold2:#e8a800;
     --purple:#8b5cf6;--teal:#14b8a6;--red:#ef4444;--green:#22c55e;
+    --expired:#4a4a5a;--expired-bg:rgba(255,255,255,0.03);
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;padding:24px 16px;}
@@ -29,6 +30,9 @@
   .ball.hot{background:linear-gradient(135deg,var(--red),#b91c1c);color:#fff;}
   .ball.cold{background:linear-gradient(135deg,#1e3a5f,var(--teal));color:#fff;}
   .ball.overdue{background:linear-gradient(135deg,#1a3f2a,var(--green));color:#fff;}
+  .ball.expired{background:linear-gradient(135deg,#3a3a4a,#2a2a3a);color:#666677;opacity:0.5;}
+  .ball.winning{background:linear-gradient(135deg,var(--gold),#ffd700);color:#1a1000;box-shadow:0 0 20px rgba(245,200,66,0.4);animation:pulse-gold 1.5s ease-in-out infinite;}
+  @keyframes pulse-gold{0%,100%{box-shadow:0 0 20px rgba(245,200,66,0.4);}50%{box-shadow:0 0 40px rgba(245,200,66,0.8);}}
   .balls-row{display:flex;flex-wrap:wrap;align-items:center;gap:2px;}
   .tab-bar{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap;}
   .tab{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:13px;transition:all .15s;}
@@ -43,10 +47,18 @@
   .strategy-opt{background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;font-size:13px;color:var(--muted);transition:all .15s;text-align:left;}
   .strategy-opt.selected{border-color:var(--gold);color:var(--gold);background:rgba(245,200,66,.08);}
   .strategy-opt strong{display:block;font-size:14px;font-weight:600;margin-bottom:2px;}
-  .pick-set{background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid var(--border);}
-  .pick-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .pick-set{background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid var(--border);transition:all .3s;}
+  .pick-set.expired{opacity:0.5;border-color:var(--expired);background:var(--expired-bg);}
+  .pick-set.winning{background:rgba(245,200,66,.08);border-color:var(--gold);}
+  .pick-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;}
   .pick-label{font-size:12px;color:var(--muted);}
   .score-badge{background:rgba(139,92,246,.2);color:var(--purple);font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid rgba(139,92,246,.3);}
+  .status-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;letter-spacing:0.3px;}
+  .status-badge.pending{background:rgba(245,200,66,.15);color:var(--gold);border:1px solid rgba(245,200,66,.3);}
+  .status-badge.won{background:rgba(34,197,94,.18);color:var(--green);border:1px solid rgba(34,197,94,.35);animation:pulse-green 2s ease-in-out infinite;}
+  .status-badge.lost{background:rgba(136,136,153,.1);color:var(--muted);border:1px solid var(--border);}
+  .status-badge.cleared{background:rgba(136,136,153,.05);color:#555566;border:1px solid rgba(136,136,153,.1);text-decoration:line-through;}
+  @keyframes pulse-green{0%,100%{opacity:1;}50%{opacity:0.7;}}
   .strat-badge{font-size:10px;padding:2px 7px;border-radius:20px;margin-left:6px;}
   .freq-bar-wrap{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
   .freq-num{width:24px;text-align:right;font-size:13px;font-weight:600;color:var(--text);}
@@ -67,18 +79,32 @@
   .save-btn:hover{background:rgba(139,92,246,.15);}
   .save-btn:disabled{opacity:.5;cursor:default;}
   .save-btn.saved{background:rgba(34,197,94,.15);border-color:var(--green);color:var(--green);}
-  .mypick-card{background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid var(--border);}
+  .mypick-card{background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid var(--border);transition:all .3s;}
+  .mypick-card.winning{background:rgba(245,200,66,.08);border-color:var(--gold);}
+  .mypick-card.lost{opacity:0.4;border-color:var(--expired);}
+  .mypick-card.cleared{display:none;}
   .mypick-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;}
   .mypick-date{font-size:12px;color:var(--muted);}
   .status-pill{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;}
-  .status-pending{background:rgba(245,200,66,.15);color:var(--gold);border:1px solid rgba(245,200,66,.3);}
-  .status-won{background:rgba(34,197,94,.18);color:var(--green);border:1px solid rgba(34,197,94,.35);}
-  .status-lost{background:rgba(136,136,153,.15);color:var(--muted);border:1px solid var(--border);}
+  .status-pending{background:rgba(245,200,66,.15);color:var(--gold);border:1px solid rgba(245,200,66,.3);animation:pulse-pending 2s ease-in-out infinite;}
+  .status-won{background:rgba(34,197,94,.18);color:var(--green);border:1px solid rgba(34,197,94,.35);animation:pulse-won 1.5s ease-in-out infinite;}
+  .status-lost{background:rgba(136,136,153,.1);color:var(--muted);border:1px solid var(--border);}
+  .status-cleared{background:rgba(136,136,153,.05);color:#555566;border:1px solid rgba(136,136,153,.1);text-decoration:line-through;}
+  @keyframes pulse-pending{0%,100%{opacity:1;}50%{opacity:0.6;}}
+  @keyframes pulse-won{0%,100%{box-shadow:0 0 10px rgba(34,197,94,0.2);}50%{box-shadow:0 0 25px rgba(34,197,94,0.4);}}
   .empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
   .tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;margin:2px;}
   .tag-hot{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);}
   .tag-due{background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.3);}
   .tag-freq{background:rgba(245,200,66,.12);color:#fde68a;border:1px solid rgba(245,200,66,.25);}
+  .tag-expired{background:rgba(136,136,153,.08);color:#666677;border:1px solid rgba(136,136,153,.15);}
+  .tag-winning{background:rgba(245,200,66,.2);color:var(--gold);border:1px solid rgba(245,200,66,.4);animation:pulse-gold 2s ease-in-out infinite;}
+  .clear-info{font-size:11px;color:var(--muted);background:rgba(136,136,153,.06);border-radius:6px;padding:4px 10px;margin-top:4px;display:inline-block;}
+  .clear-info.expired{color:#555566;background:rgba(136,136,153,.04);}
+  .clear-info.winning{color:var(--gold);background:rgba(245,200,66,.08);}
+  .mypick-count{font-size:13px;color:var(--muted);margin-bottom:12px;padding:8px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);}
+  .mypick-count strong{color:var(--gold);}
+  .prize-tier{font-size:13px;font-weight:700;color:var(--gold);}
 </style>
 </head>
 <body>
@@ -226,6 +252,7 @@
     <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">
       Picks you save are stored against this device and checked automatically after each draw at 23:00 SAST.
       No account needed — your picks stay tied to this browser.
+      <strong style="color:var(--gold);">Losing picks are automatically cleared after the draw.</strong>
     </p>
     <div id="mypicks-status" style="font-size:12px;color:var(--muted);margin-bottom:12px"></div>
     <div id="mypicks-list"></div>
@@ -641,8 +668,6 @@ let distChartInst = null;
 
 // ─────────────────────────────────────────────
 // SUPABASE CONFIG
-// Replace these two values with your own project's URL and anon key
-// (Supabase Dashboard → Settings → API)
 // ─────────────────────────────────────────────
 const SUPABASE_URL      = 'https://oigjybpsomrcdhsyyitb.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_zyrd_cD1FaXLJ8kPh0EwdA_gUflerrV';
@@ -655,7 +680,6 @@ try {
 
 // ─────────────────────────────────────────────
 // ANONYMOUS DEVICE ID
-// Generated once, stored in this browser, used to find "my picks"
 // ─────────────────────────────────────────────
 function getDeviceId() {
   let id = localStorage.getItem('sa_lotto_device_id');
@@ -667,8 +691,57 @@ function getDeviceId() {
 }
 
 // ─────────────────────────────────────────────
-// NEXT DRAW DATE (used to tag saved picks correctly)
+// DRAW DATE HELPERS
 // ─────────────────────────────────────────────
+
+function getLatestDrawDateISO() {
+  if (!RECENT_DRAWS || RECENT_DRAWS.length === 0) return null;
+  const dates = RECENT_DRAWS.map(d => new Date(d[0]));
+  const latest = new Date(Math.max(...dates));
+  return latest.toISOString().split('T')[0];
+}
+
+function isDrawPassed(drawDateISO) {
+  const drawDate = new Date(drawDateISO);
+  const now = new Date();
+  return drawDate < now;
+}
+
+function getDrawResult(drawDateISO) {
+  if (!RECENT_DRAWS) return null;
+  for (const draw of RECENT_DRAWS) {
+    if (draw[0] === drawDateISO) {
+      return { balls: draw[1], bonus: draw[2] };
+    }
+  }
+  return null;
+}
+
+function checkPickAgainstResult(pick, result) {
+  if (!result) return { matched: 0, bonusMatched: false, prizeTier: null };
+  
+  const pickBalls = new Set(pick.balls);
+  let matched = 0;
+  for (const b of result.balls) {
+    if (pickBalls.has(b)) matched++;
+  }
+  
+  const bonusMatched = pick.bonus === result.bonus;
+  
+  let prizeTier = null;
+  if (matched === 6 && bonusMatched) prizeTier = '🏆 Division 1';
+  else if (matched === 6) prizeTier = '🥈 Division 2';
+  else if (matched === 5 && bonusMatched) prizeTier = '🥉 Division 3';
+  else if (matched === 5) prizeTier = 'Division 4';
+  else if (matched === 4 && bonusMatched) prizeTier = 'Division 5';
+  else if (matched === 4) prizeTier = 'Division 6';
+  else if (bonusMatched && matched === 3) prizeTier = 'Division 7';
+  else if (matched === 3) prizeTier = 'Division 8';
+  else if (matched === 2 && bonusMatched) prizeTier = 'Division 9';
+  
+  return { matched, bonusMatched, prizeTier };
+}
+
 function getNextDrawDateISO() {
   const now = new Date();
   const day = now.getDay();
@@ -685,8 +758,9 @@ function getNextDrawDateISO() {
 }
 
 // ─────────────────────────────────────────────
-// SAVE A PICK TO SUPABASE
+// SAVE PICK TO SUPABASE
 // ─────────────────────────────────────────────
+
 async function savePick(i) {
   const btn = document.getElementById(`save-btn-${i}`);
   const pick = window._currentPicks[i];
@@ -701,13 +775,19 @@ async function savePick(i) {
   btn.disabled = true;
   btn.textContent = 'Saving...';
 
+  const drawDate = getNextDrawDateISO();
+
   const { error } = await supabaseClient.from('picks').insert({
     device_id: getDeviceId(),
     balls: pick.balls,
     bonus: pick.bonus,
     strategy: currentStrat,
     score: pick.score,
-    draw_date: getNextDrawDateISO(),
+    draw_date: drawDate,
+    checked: false,
+    matches: 0,
+    bonus_matched: false,
+    prize_tier: null,
   });
 
   if (error) {
@@ -715,14 +795,18 @@ async function savePick(i) {
     btn.disabled = false;
     console.error(error);
   } else {
-    btn.textContent = '✅ Saved for next draw';
+    btn.textContent = '✅ Saved for ' + new Date(drawDate).toLocaleDateString('en-ZA', {day:'2-digit',month:'short'});
     btn.classList.add('saved');
+    setTimeout(() => {
+      btn.textContent = '💾 Saved ✓';
+    }, 2000);
   }
 }
 
 // ─────────────────────────────────────────────
-// LOAD & RENDER "MY PICKS"
+// LOAD MY PICKS WITH AUTO-CLEAR
 // ─────────────────────────────────────────────
+
 async function loadMyPicks() {
   const statusEl = document.getElementById('mypicks-status');
   const listEl   = document.getElementById('mypicks-list');
@@ -736,7 +820,7 @@ async function loadMyPicks() {
     return;
   }
 
-  statusEl.textContent = 'Loading your picks...';
+  statusEl.textContent = '🔄 Loading your picks...';
 
   const { data, error } = await supabaseClient
     .from('picks')
@@ -760,30 +844,129 @@ async function loadMyPicks() {
     return;
   }
 
-  statusEl.textContent = `${data.length} saved pick${data.length===1?'':'s'} on this device`;
+  // Process each pick to check if it's been drawn
+  let needsUpdate = false;
+  let activeCount = 0;
+  let winningCount = 0;
+  let lostCount = 0;
 
-  listEl.innerHTML = data.map(p => {
-    const ballHtml = p.balls.map(b => `<span class="ball" style="width:28px;height:28px;font-size:12px">${b}</span>`).join('');
+  for (const p of data) {
+    if (p.checked) {
+      if (p.prize_tier) {
+        winningCount++;
+        activeCount++;
+      } else {
+        lostCount++;
+      }
+      continue;
+    }
+    
+    const drawPassed = isDrawPassed(p.draw_date);
+    if (drawPassed) {
+      const result = getDrawResult(p.draw_date);
+      if (result) {
+        const check = checkPickAgainstResult(p, result);
+        const { error: updateError } = await supabaseClient
+          .from('picks')
+          .update({
+            checked: true,
+            matches: check.matched,
+            bonus_matched: check.bonusMatched,
+            prize_tier: check.prizeTier,
+          })
+          .eq('id', p.id);
+        
+        if (!updateError) {
+          p.checked = true;
+          p.matches = check.matched;
+          p.bonus_matched = check.bonusMatched;
+          p.prize_tier = check.prizeTier;
+          needsUpdate = true;
+          if (check.prizeTier) {
+            winningCount++;
+            activeCount++;
+          } else {
+            lostCount++;
+          }
+        } else {
+          activeCount++;
+        }
+      } else {
+        activeCount++;
+      }
+    } else {
+      activeCount++;
+    }
+  }
+
+  // Display picks
+  const displayPicks = data.filter(p => {
+    // Show all checked picks with prizes (winners)
+    if (p.checked && p.prize_tier) return true;
+    // Show all unchecked picks (pending)
+    if (!p.checked) return true;
+    // Hide checked picks without prizes (lost - auto-cleared)
+    return false;
+  });
+
+  // Build status message
+  let statusMsg = `${displayPicks.length} active pick${displayPicks.length===1?'':'s'}`;
+  if (winningCount > 0) statusMsg += ` · 🎉 ${winningCount} winner${winningCount===1?'':'s'}`;
+  if (lostCount > 0) statusMsg += ` · 🗑️ ${lostCount} auto-cleared`;
+  statusEl.innerHTML = statusMsg;
+
+  if (displayPicks.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">
+      🎫 No active picks.<br>
+      <span style="font-size:11px">${lostCount > 0 ? lostCount + ' losing pick' + (lostCount===1?'':'s') + ' were auto-cleared. ' : ''}
+      Generate new picks and save them to track here.</span>
+    </div>`;
+    return;
+  }
+
+  listEl.innerHTML = displayPicks.map(p => {
+    const ballHtml = p.balls.map(b => {
+      let cls = 'ball';
+      if (p.checked && p.prize_tier) {
+        cls = 'ball winning';
+      } else if (p.checked && !p.prize_tier) {
+        cls = 'ball expired';
+      }
+      return `<span class="${cls}" style="width:28px;height:28px;font-size:12px">${b}</span>`;
+    }).join('');
     const bonusHtml = `<span style="color:var(--muted);font-size:11px;margin:0 2px">+</span><span class="ball bonus" style="width:28px;height:28px;font-size:12px">${p.bonus}</span>`;
     const dateStr = new Date(p.draw_date).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'});
 
     let statusHtml;
+    let cardClass = '';
     if (!p.checked) {
-      statusHtml = `<span class="status-pill status-pending">⏳ Pending — checked after draw</span>`;
-    } else if (p.prize_tier && p.prize_tier !== 'No Prize') {
+      statusHtml = `<span class="status-pill status-pending">⏳ Pending — check after ${dateStr}</span>`;
+      cardClass = '';
+    } else if (p.prize_tier) {
       statusHtml = `<span class="status-pill status-won">🎉 ${p.prize_tier} — ${p.matches} matched${p.bonus_matched?' + bonus':''}</span>`;
+      cardClass = 'winning';
     } else {
-      statusHtml = `<span class="status-pill status-lost">${p.matches} matched — No Prize</span>`;
+      statusHtml = `<span class="status-pill status-cleared">🗑️ ${p.matches} matched — No prize (auto-cleared)</span>`;
+      cardClass = 'lost';
     }
 
-    return `<div class="mypick-card">
+    return `<div class="mypick-card ${cardClass}">
       <div class="mypick-header">
         <span class="mypick-date">Draw: ${dateStr}</span>
         ${statusHtml}
       </div>
       <div class="balls-row">${ballHtml}${bonusHtml}</div>
+      <div style="margin-top:6px;font-size:10px;color:var(--muted);">
+        ${p.checked && p.prize_tier ? '🏆 Winning pick — kept for your records' : 
+          p.checked && !p.prize_tier ? '🗑️ Auto-cleared after draw' : 
+          '⏳ Will be checked on draw date'}
+      </div>
     </div>`;
   }).join('');
+
+  if (needsUpdate) {
+    setTimeout(loadMyPicks, 3000);
+  }
 }
 
 function switchTab(t, btn) {
@@ -820,6 +1003,7 @@ const NUMS = Array.from({length:52},(_,i)=>i+1);
 function generatePicks() {
   const n = parseInt(document.getElementById('picks-range').value);
   const picks = [];
+  const nextDrawDate = getNextDrawDateISO();
 
   for(let i=0;i<n;i++){
     let balls, tags=[];
@@ -878,7 +1062,6 @@ function generatePicks() {
       tags = ['🎲 Smart random'];
     }
 
-    // Pick bonus ball weighted by bonus frequency
     const bonusPool = NUMS.filter(n=>!balls.includes(n));
     const bonusWeights = bonusPool.map(n=>BONUS_FREQ[n]||30);
     const [bonus] = weightedSample(bonusPool, bonusWeights, 1);
@@ -907,13 +1090,15 @@ function generatePicks() {
         <span class="ball bonus">${p.bonus}</span>
         <span style="color:var(--muted);font-size:11px;margin-left:6px">bonus</span>
       </div>
-      <div style="margin-top:8px;font-size:11px;color:var(--muted)">
+      <div style="margin-top:8px;font-size:11px;color:var(--muted);">
         Sum: ${p.balls.reduce((a,b)=>a+b,0)} &nbsp;·&nbsp;
         Avg: ${(p.balls.reduce((a,b)=>a+b,0)/6).toFixed(1)} &nbsp;·&nbsp;
-        <span style="color:#fca5a5">🔴 hot</span> = in top 10 recent &nbsp;·&nbsp; <span style="color:#86efac">🟢 overdue</span> = long absent
+        <span style="color:#fca5a5">🔴 hot</span> = in top 10 recent &nbsp;·&nbsp; 
+        <span style="color:#86efac">🟢 overdue</span> = long absent
       </div>
-      <div style="margin-top:10px">
-        <button class="save-btn" id="save-btn-${i}" onclick="savePick(${i})">💾 Save this pick</button>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <button class="save-btn" id="save-btn-${i}" onclick="savePick(${i})">💾 Save for next draw</button>
+        <span class="clear-info">⏳ Will auto-clear after ${new Date(getNextDrawDateISO()).toLocaleDateString('en-ZA',{day:'2-digit',month:'short'})} draw</span>
       </div>
     </div>`;
   }).join('');
@@ -933,7 +1118,6 @@ function calcScore(balls) {
   });
   const sum=balls.reduce((a,b)=>a+b,0);
   if(sum>=90&&sum<=200) s+=5;
-  // check no 3 consecutive
   const sorted=[...balls].sort((a,b)=>a-b);
   let consec=1,maxConsec=1;
   for(let i=1;i<sorted.length;i++){if(sorted[i]-sorted[i-1]===1)consec++;else consec=1;maxConsec=Math.max(maxConsec,consec);}
@@ -995,10 +1179,9 @@ function renderFreq() {
 }
 
 function getNextDrawDate() {
-  // Returns the next Wednesday (day 3) or Saturday (day 6) from today
   const now  = new Date();
-  const day  = now.getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
-  const drawDays = [3, 6];   // Wednesday, Saturday
+  const day  = now.getDay();
+  const drawDays = [3, 6];
   let minDays = 7;
   for(const d of drawDays){
     let diff = d - day;
@@ -1011,7 +1194,6 @@ function getNextDrawDate() {
 }
 
 function getLatestDrawDate() {
-  // Pull the most recent draw date from RECENT_DRAWS
   const dates = RECENT_DRAWS.map(d => new Date(d[0]));
   const latest = new Date(Math.max(...dates));
   return latest.toLocaleDateString('en-ZA', {day:'numeric', month:'long', year:'numeric'});
@@ -1022,13 +1204,13 @@ function renderInsightBox() {
   const overdue5 = OVERDUE.slice(0,5).join(', ');
   const latestDate = getLatestDrawDate();
   const nextDraw   = getNextDrawDate();
-  const totalDraws = Object.values(FULL_FREQ).reduce((a,b)=>a+b,0);
 
   document.getElementById('insight-box').innerHTML =
     `📌 Based on the latest data (through <b>${latestDate}</b>): ` +
     `numbers <b>${hot5}</b> are hottest recently. ` +
     `Numbers <b>${overdue5}</b> are most overdue. ` +
-    `Next draw: <b>${nextDraw}</b>.`;
+    `Next draw: <b>${nextDraw}</b>. ` +
+    `<span style="color:var(--muted);font-size:11px;display:block;margin-top:4px;">🗑️ Saved picks auto-clear after each draw if they don't win</span>`;
 }
 
 function renderRecent() {
